@@ -1,0 +1,180 @@
+name: "Terraform Deployment"
+run-name: ${{ github.triggering_actor }} is running out Terraform Deployment 🚀
+on:
+  pull_request:
+    branches:
+      - main
+env:
+  AWS_REGION: "us-east-1" # We're assuming deployment to this region but can be change as needed
+  # TODO: remove uncomment and remove the below
+  TARGET_ACCOUNT: "327110749334" # Modify the target account for deployment
+  # TARGET_ACCOUNT: "012345678901" # Modify the target account for deployment
+  TERRAFORM_VERSION: 1.7.4
+  # Verbosity setting for Terraform logs
+  # TF_LOG: DEBUG
+jobs:
+  pre-commit-terraform:
+    uses: ./.github/workflows/pre-commit.yml
+
+  terraform_plan:
+    concurrency: workflow
+    name: "terraform_plan"
+    runs-on: ubuntu-latest
+    needs: [pre-commit-terraform]
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout the repository to the runner
+        uses: actions/checkout@v4.1.1
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Authentication
+        id: Authentication
+        run: |
+          # Azure authentication
+          echo "${{ secrets.EPB_GHC_IAC_OIDC_CERT}}" > private_key.pem
+          chmod 600 private_key.pem
+          az login --service-principal --allow-no-subscriptions -u ${{ vars.EPB_GHC_IaC_APP_ID }} -t ${{ vars.EPB_TENANT_ID }}  --password ./private_key.pem
+
+          # Get token from Azure
+          WEB_IDENTITY_TOKEN=$(az account get-access-token --resource ${{ vars.EPB_GHC_IaC_APP_ID }} --query accessToken -o tsv)
+
+          # Assume OIDC Role in AWS
+          AWS_CREDENTIALS=$(aws sts assume-role-with-web-identity --role-arn 'arn:aws:iam::015266798793:role/EpbIacGhcPipelineRole' --role-session-name "EpbIacGhcPipelineRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --web-identity-token $WEB_IDENTITY_TOKEN --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
+          export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
+          export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
+          export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
+
+          # Assume Deployment Role in AWS
+          AWS_CREDENTIALS=$(aws sts assume-role --role-arn 'arn:aws:iam::${{ env.TARGET_ACCOUNT }}:role/EpbIacGhcPipelineResourceManagerRole' --role-session-name "EpbIacGhcPipelineResourceManagerRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
+          export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
+          export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
+          export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+
+      - name: Terraform init
+        id: init
+        run: |
+          aws sts get-caller-identity
+          terraform init --backend-config=init-tfvars/prod.tfvars
+
+      - name: Terraform plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        run: |
+          terraform plan -var-file=apply-tfvars/prod.tfvars -out=plan.tmp
+          terraform show -no-color plan.tmp >${GITHUB_WORKSPACE}/plan.out
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4.3.1
+        with:
+          name: plan-output
+          path: plan.tmp
+          retention-days: 1
+      # This module is needed for the execution of the script below that takes
+      # care of the print of the TF Plan in a comment of the PR
+      - name: Install fs module
+        run: npm install fs
+      - uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const run_url = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID
+            const run_link = '<a href="' + run_url + '">Actions</a>.'
+            const fs = require('fs')
+            let plan = ""
+            let truncated_message = ""
+            if (fs.existsSync('plan.out')) {
+              const plan_file = fs.readFileSync('plan.out', 'utf8');
+              plan = plan_file.length > 65000 ? plan_file.toString().substring(0, 65000) + " ..." : plan_file
+              truncated_message = plan_file.length > 65000 ? "Output is too long and was truncated. You can read full Plan in " + run_link + "<br /><br />" : ""
+            } else {
+              plan = "No plan to show"
+            }
+            const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${plan}
+            \`\`\`
+
+            </details>
+            ${truncated_message}            
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ github.workspace }}\`, Workflow: \`${{ github.workflow }}\`*
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+  terraform_apply:
+    name: "terraform_apply"
+    runs-on: ubuntu-latest
+    environment: prod # must exist the environment created in GitHub with the same name
+    needs: [terraform_plan]
+    steps:
+      - name: Checkout the repository to the runner
+        uses: actions/checkout@v4.1.1
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - name: Authentication
+        id: Authentication
+        run: |
+          # Azure authentication
+          echo "${{ secrets.EPB_GHC_IAC_OIDC_CERT}}" > private_key.pem
+          chmod 600 private_key.pem
+          az login --service-principal --allow-no-subscriptions -u ${{ vars.EPB_GHC_IaC_APP_ID }} -t ${{ vars.EPB_TENANT_ID }}  --password ./private_key.pem
+
+          # Get token from Azure
+          WEB_IDENTITY_TOKEN=$(az account get-access-token --resource ${{ vars.EPB_GHC_IaC_APP_ID }} --query accessToken -o tsv)
+
+          # Assume OIDC Role in AWS
+          AWS_CREDENTIALS=$(aws sts assume-role-with-web-identity --role-arn 'arn:aws:iam::015266798793:role/EpbIacGhcPipelineRole' --role-session-name "EpbIacGhcPipelineRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --web-identity-token $WEB_IDENTITY_TOKEN --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
+          export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
+          export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
+          export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
+
+          # Assume Deployment Role in AWS
+          AWS_CREDENTIALS=$(aws sts assume-role --role-arn 'arn:aws:iam::${{ env.TARGET_ACCOUNT }}:role/EpbIacGhcPipelineResourceManagerRole' --role-session-name "EpbIacGhcPipelineResourceManagerRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
+          export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
+          export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
+          export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+      - name: Terraform init
+        id: init
+        run: |
+          aws sts get-caller-identity
+          terraform init --backend-config=init-tfvars/prod.tfvars
+      - uses: actions/download-artifact@master
+        with:
+          name: plan-output
+      - name: terraform-apply
+        # run: echo "terraform apply"
+        run: terraform apply -input=false -auto-approve plan.tmp
