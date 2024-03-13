@@ -190,19 +190,19 @@ pre-commit install
 
 ### Dev
 ```bash
-terraform init -backend-config=./init-tfvars/dev.tfvars 
+terraform init -backend-config=./init-tfvars/dev.tfvars
 terraform apply -var-file ./apply-tfvars/dev.tfvars
 ```
 
 ### Stg
 ```bash
-terraform init -backend-config=./init-tfvars/stg.tfvars 
+terraform init -backend-config=./init-tfvars/stg.tfvars
 terraform apply -var-file ./apply-tfvars/stg.tfvars
 ```
 
 ### Prd
 ```bash
-terraform init -backend-config=./init-tfvars/prd.tfvars 
+terraform init -backend-config=./init-tfvars/prd.tfvars
 terraform apply -var-file ./apply-tfvars/prd.tfvars
 ```
 Note: Before reading, uncomment the code for the environment that you

@@ -1,0 +1,97 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CreateKMSKeyStatement1",
+      "Effect": "Allow",
+      "Action": ["kms:CreateKey", "kms:ListAliases"],
+      "Resource": ["*"]
+    },
+    {
+      "Sid": "CreateKMSKeyStatement2",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt",
+        "kms:DescribeKey",
+        "kms:EnableKeyRotation",
+        "kms:GenerateDataKey",
+        "kms:GetKeyPolicy",
+        "kms:GetKeyRotationStatus",
+        "kms:ListResourceTags",
+        "kms:TagResource"
+      ],
+      "Resource": ["arn:aws:kms:*:327110749334:key/*"]
+    },
+    {
+      "Sid": "CreateKMSKeyStatement3",
+      "Effect": "Allow",
+      "Action": ["kms:CreateAlias"],
+      "Resource": [
+        "arn:aws:kms:*:327110749334:alias/iac-remote-state-backend-default-key-dev-infra",
+        "arn:aws:kms:*:327110749334:key/*"
+      ]
+    },
+    {
+      "Sid": "CreateTfStateLockTableStatement1",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeContinuousBackups",
+        "dynamodb:DescribeTable",
+        "dynamodb:DescribeTimeToLive",
+        "dynamodb:GetItem",
+        "dynamodb:ListTagsOfResource",
+        "dynamodb:PutItem",
+        "dynamodb:TagResource",
+        "dynamodb:UpdateContinuousBackups"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:*:327110749334:table/iac-remote-state-backend-dev-infra"
+      ]
+    },
+    {
+      "Sid": "CreateTfStateLockTableStatement2",
+      "Effect": "Allow",
+      "Action": ["kms:CreateGrant"],
+      "Resource": ["arn:aws:kms:*:327110749334:key/*"]
+    },
+    {
+      "Sid": "CreateTfStateBucketStatement",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:GetAccelerateConfiguration",
+        "s3:GetBucketAcl",
+        "s3:GetBucketCORS",
+        "s3:GetBucketLogging",
+        "s3:GetBucketObjectLockConfiguration",
+        "s3:GetBucketPolicy",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetBucketRequestPayment",
+        "s3:GetBucketTagging",
+        "s3:GetBucketVersioning",
+        "s3:GetBucketWebsite",
+        "s3:GetEncryptionConfiguration",
+        "s3:GetLifecycleConfiguration",
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:GetReplicationConfiguration",
+        "s3:ListBucket",
+        "s3:PutBucketLogging",
+        "s3:PutBucketPolicy",
+        "s3:PutBucketPublicAccessBlock",
+        "s3:PutBucketTagging",
+        "s3:PutBucketVersioning",
+        "s3:PutEncryptionConfiguration",
+        "s3:PutLifecycleConfiguration",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::iac-remote-state-backend-dev-infra",
+        "arn:aws:s3:::iac-remote-state-backend-dev-infra/iac-account-dev-infra.tfstate",
+        "arn:aws:s3:::iac-logging-dev-infra-us-east-1"
+      ]
+    }
+  ]
+}

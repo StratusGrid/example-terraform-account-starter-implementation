@@ -20,7 +20,7 @@ content: |-
   - StratusGrid generally follows the TerraForm standards outlined [here](https://www.terraform-best-practices.com/naming)
 
   ## Repo Knowledge
-  
+
   This repo has several base requirements
   - This repo is based upon the AWS `~> 5.40` provider
   - The following packages are installed via brew: `tflint`, `terrascan`, `terraform-docs`, `gitleaks`, `tfsec`, `pre-commit', 'sops`, `go`
@@ -38,7 +38,7 @@ content: |-
   Trivy has scanners that look for security issues, and targets where it can find those issues. TFSec was migrated to Trivy
 
   ### Terraform validate
-  
+
   Terraform Validate can't be used in the Git Pre-Commit hooks as several resources are generated at run time
 
   ## Documentation
@@ -47,10 +47,10 @@ content: |-
 
   The way that this repo is structured is supposed to be an infrastructure starter, as well as a base psuedo code repo.
   Each file is generally self contained except where it can't be. All variables are in `variables.tf`, all data is in `data.tf`, and etc.
-  
+
   ### `data.tf`
   This data file contains all references for data providers, these are fairly generic.
-  
+
   ### `LICENSE`
   This is the standard Apache 2.0 License as defined [here](https://stratusgrid.atlassian.net/wiki/spaces/TK/pages/2121728017/StratusGrid+Terraform+Module+Requirements).
 
@@ -125,7 +125,7 @@ content: |-
   {{ .Inputs }}
 
   {{ .Outputs }}
-  
+
 
   ---
   ## Assumptions we make
@@ -161,19 +161,19 @@ content: |-
 
   ### Dev
   ```bash
-  terraform init -backend-config=./init-tfvars/dev.tfvars 
+  terraform init -backend-config=./init-tfvars/dev.tfvars
   terraform apply -var-file ./apply-tfvars/dev.tfvars
   ```
 
   ### Stg
   ```bash
-  terraform init -backend-config=./init-tfvars/stg.tfvars 
+  terraform init -backend-config=./init-tfvars/stg.tfvars
   terraform apply -var-file ./apply-tfvars/stg.tfvars
   ```
 
   ### Prd
   ```bash
-  terraform init -backend-config=./init-tfvars/prd.tfvars 
+  terraform init -backend-config=./init-tfvars/prd.tfvars
   terraform apply -var-file ./apply-tfvars/prd.tfvars
   ```
   Note: Before reading, uncomment the code for the environment that you
@@ -189,6 +189,7 @@ content: |-
   - Wesley Kirkland [wesleykirklandsg](https://github.com/wesleykirklandsg)
 
   Note, manual changes to the README will be overwritten when the documentation is updated. To update the documentation, run `terraform-docs -c .config/.terraform-docs.yml .`
+
 
 sections:
   show:

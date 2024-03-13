@@ -3,13 +3,14 @@ run-name: QA Deployment - ${{ github.actor }} 🚀
 on:
   workflow_call:
     secrets:
-      EPB_GHC_IAC_OIDC_CERT:
+      GHC_IAC_OIDC_CERT:
         required: true
 
 env:
-  AWS_REGION: "us-east-2" # us-east-1  for management account, us-east-2 for other accounts
-  TARGET_ACCOUNT: "905418245105" # Modify the target account for deployment
-  TERRAFORM_VERSION: 1.7.2
+  AWS_REGION: "us-east-1" # Add the region where you're going to deploy
+  OIDC_FED_ACCOUNT: "327110749334" # Modify the OIDC Fed account where the authentication occurs
+  TARGET_ACCOUNT: "327110749334" # Modify the target account for deployment  
+  TERRAFORM_VERSION: 1.7.4
   # Verbosity setting for Terraform logs
   # TF_LOG: DEBUG
 
@@ -36,21 +37,21 @@ jobs:
         id: Authentication
         run: |
           # Azure authentication
-          echo "${{ secrets.EPB_GHC_IAC_OIDC_CERT }}" > private_key.pem
+          echo "${{ secrets.GHC_IAC_OIDC_CERT }}" > private_key.pem
           chmod 600 private_key.pem
-          az login --service-principal --allow-no-subscriptions -u ${{ vars.EPB_GHC_IaC_APP_ID }} -t ${{ vars.EPB_TENANT_ID }}  --password ./private_key.pem
+          az login --service-principal --allow-no-subscriptions -u ${{ vars.GHC_IaC_APP_ID }} -t ${{ vars.TENANT_ID }}  --password ./private_key.pem
 
           # Get token from Azure
-          WEB_IDENTITY_TOKEN=$(az account get-access-token --resource ${{ vars.EPB_GHC_IaC_APP_ID }} --query accessToken -o tsv)
+          WEB_IDENTITY_TOKEN=$(az account get-access-token --resource ${{ vars.GHC_IaC_APP_ID }} --query accessToken -o tsv)
 
           # Assume OIDC Role in AWS
-          AWS_CREDENTIALS=$(aws sts assume-role-with-web-identity --role-arn 'arn:aws:iam::015266798793:role/EpbIacGhcPipelineRole' --role-session-name "EpbIacGhcPipelineRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --web-identity-token $WEB_IDENTITY_TOKEN --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
+          AWS_CREDENTIALS=$(aws sts assume-role-with-web-identity --role-arn 'arn:aws:iam::${{ vars.OIDC_FED_ACCOUNT }}:role/IacGhcPipelineRole' --role-session-name "IacGhcPipelineRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --web-identity-token $WEB_IDENTITY_TOKEN --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
           export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
           export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
           export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
 
           # Assume Deployment Role in AWS
-          AWS_CREDENTIALS=$(aws sts assume-role --role-arn 'arn:aws:iam::${{ env.TARGET_ACCOUNT }}:role/EpbIacGhcPipelineResourceManagerRole' --role-session-name "EpbIacGhcPipelineResourceManagerRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
+          AWS_CREDENTIALS=$(aws sts assume-role --role-arn 'arn:aws:iam::${{ env.TARGET_ACCOUNT }}:role/IacGhcPipelineResourceManagerRole' --role-session-name "IacGhcPipelineResourceManagerRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
           export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
           export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
           export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
@@ -100,21 +101,21 @@ jobs:
         id: Authentication
         run: |
           # Azure authentication
-          echo "${{ secrets.EPB_GHC_IAC_OIDC_CERT}}" > private_key.pem
+          echo "${{ secrets.GHC_IAC_OIDC_CERT}}" > private_key.pem
           chmod 600 private_key.pem
-          az login --service-principal --allow-no-subscriptions -u ${{ vars.EPB_GHC_IaC_APP_ID }} -t ${{ vars.EPB_TENANT_ID }}  --password ./private_key.pem
+          az login --service-principal --allow-no-subscriptions -u ${{ vars.GHC_IaC_APP_ID }} -t ${{ vars.TENANT_ID }}  --password ./private_key.pem
 
           # Get token from Azure
-          WEB_IDENTITY_TOKEN=$(az account get-access-token --resource ${{ vars.EPB_GHC_IaC_APP_ID }} --query accessToken -o tsv)
+          WEB_IDENTITY_TOKEN=$(az account get-access-token --resource ${{ vars.GHC_IaC_APP_ID }} --query accessToken -o tsv)
 
           # Assume OIDC Role in AWS
-          AWS_CREDENTIALS=$(aws sts assume-role-with-web-identity --role-arn 'arn:aws:iam::015266798793:role/EpbIacGhcPipelineRole' --role-session-name "EpbIacGhcPipelineRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --web-identity-token $WEB_IDENTITY_TOKEN --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
+          AWS_CREDENTIALS=$(aws sts assume-role-with-web-identity --role-arn 'arn:aws:iam::015266798793:role/IacGhcPipelineRole' --role-session-name "IacGhcPipelineRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --web-identity-token $WEB_IDENTITY_TOKEN --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
           export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
           export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
           export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
 
           # Assume Deployment Role in AWS
-          AWS_CREDENTIALS=$(aws sts assume-role --role-arn 'arn:aws:iam::${{ env.TARGET_ACCOUNT }}:role/EpbIacGhcPipelineResourceManagerRole' --role-session-name "EpbIacGhcPipelineResourceManagerRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
+          AWS_CREDENTIALS=$(aws sts assume-role --role-arn 'arn:aws:iam::${{ env.TARGET_ACCOUNT }}:role/IacGhcPipelineResourceManagerRole' --role-session-name "IacGhcPipelineResourceManagerRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
           export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
           export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
           export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)

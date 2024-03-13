@@ -1,8 +1,8 @@
 name: Pre-Commit
 
 on:
-  pull_request:
+  workflow_call:
 
 jobs:
   build:
-    uses: StratusGrid/workflow-config/.github/workflows/pre-commit.yml@main
+    uses: StratusGrid/workflow-config/.github/workflows/pre-commit.yml@feature/allow-ignore-flags-in-modules
