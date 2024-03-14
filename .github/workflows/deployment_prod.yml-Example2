@@ -1,9 +1,10 @@
-name: "Terraform Deployment"
-run-name: ${{ github.triggering_actor }} is running out Terraform Deployment 🚀
+name: "Production Deployment"
+run-name: Production Deployment - ${{ github.actor }} 🚀
 on:
-  pull_request:
+  push:
     branches:
       - main
+
 env:
   AWS_REGION: "us-east-1" # Add the region where you're going to deploy
   OIDC_FED_ACCOUNT: "327110749334" # Modify the OIDC Fed account where the authentication occurs
@@ -11,14 +12,16 @@ env:
   TERRAFORM_VERSION: 1.7.4
   # Verbosity setting for Terraform logs
   # TF_LOG: DEBUG
+
 jobs:
   pre-commit-terraform:
     uses: ./.github/workflows/pre-commit.yml
 
-  terraform_plan:
+  prod_terraform_plan:
     concurrency: workflow
-    name: "terraform_plan"
+    name: "prod_terraform_plan"
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [pre-commit-terraform]
     defaults:
       run:
@@ -32,12 +35,11 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
-
       - name: Authentication
         id: Authentication
         run: |
           # Azure authentication
-          echo "${{ secrets.GHC_IAC_OIDC_CERT}}" > private_key.pem
+          echo "${{ secrets.GHC_IAC_OIDC_CERT }}" > private_key.pem
           chmod 600 private_key.pem
           az login --service-principal --allow-no-subscriptions -u ${{ vars.GHC_IaC_APP_ID }} -t ${{ vars.TENANT_ID }}  --password ./private_key.pem
 
@@ -64,73 +66,25 @@ jobs:
       - name: Terraform init
         id: init
         run: |
-          aws sts get-caller-identity
-          terraform init --backend-config=init-tfvars/dev.tfvars
+          terraform init --backend-config=init-tfvars/prod.tfvars
 
       - name: Terraform plan
         id: plan
-        if: github.event_name == 'pull_request'
         run: |
-          terraform plan -var-file=apply-tfvars/dev.tfvars -out=plan.tmp
-          terraform show -no-color plan.tmp >${GITHUB_WORKSPACE}/plan.out
-        continue-on-error: true
+          terraform plan -var-file=apply-tfvars/prod.tfvars -out=plan_prod.tmp
+          terraform show -no-color plan_prod.tmp >${GITHUB_WORKSPACE}/plan.out
       - uses: actions/upload-artifact@v4.3.1
         with:
-          name: plan-output
-          path: plan.tmp
+          name: plan-output-prod
+          path: plan_prod.tmp
           retention-days: 1
-      # This module is needed for the execution of the script below that takes
-      # care of the print of the TF Plan in a comment of the PR
-      - name: Install fs module
-        run: npm install fs
-      - uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
-        with:
-          script: |
-            const run_url = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID
-            const run_link = '<a href="' + run_url + '">Actions</a>.'
-            const fs = require('fs')
-            let plan = ""
-            let truncated_message = ""
-            if (fs.existsSync('plan.out')) {
-              const plan_file = fs.readFileSync('plan.out', 'utf8');
-              plan = plan_file.length > 65000 ? plan_file.toString().substring(0, 65000) + " ..." : plan_file
-              truncated_message = plan_file.length > 65000 ? "Output is too long and was truncated. You can read full Plan in " + run_link + "<br /><br />" : ""
-            } else {
-              plan = "No plan to show"
-            }
-            const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
 
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-
-            <details><summary>Show Plan</summary>
-
-            \`\`\`\n
-            ${plan}
-            \`\`\`
-
-            </details>
-            ${truncated_message}            
-
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ github.workspace }}\`, Workflow: \`${{ github.workflow }}\`*
-            `;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
-
-      - name: Terraform Plan Status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
-
-  terraform_apply:
-    name: "terraform_apply"
+  prod_terraform_apply:
+    name: "prod_terraform_apply"
     runs-on: ubuntu-latest
-    environment: dev # must exist the environment created in GitHub with the same name
-    needs: [terraform_plan]
+    timeout-minutes: 20
+    environment: prod
+    needs: [prod_terraform_plan]
     steps:
       - name: Checkout the repository to the runner
         uses: actions/checkout@v4.1.1
@@ -139,11 +93,12 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
+
       - name: Authentication
         id: Authentication
         run: |
           # Azure authentication
-          echo "${{ secrets.GHC_IAC_OIDC_CERT}}" > private_key.pem
+          echo "${{ secrets.GHC_IAC_OIDC_CERT }}" > private_key.pem
           chmod 600 private_key.pem
           az login --service-principal --allow-no-subscriptions -u ${{ vars.GHC_IaC_APP_ID }} -t ${{ vars.TENANT_ID }}  --password ./private_key.pem
 
@@ -166,14 +121,14 @@ jobs:
           echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
           echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+
       - name: Terraform init
         id: init
         run: |
           aws sts get-caller-identity
-          terraform init --backend-config=init-tfvars/dev.tfvars
-      - uses: actions/download-artifact@master
+          terraform init --backend-config=init-tfvars/prod.tfvars
+      - uses: actions/download-artifact@v4.1.4
         with:
-          name: plan-output
+          name: plan-output-prod
       - name: terraform-apply
-        # run: echo "terraform apply"
-        run: terraform apply -input=false -auto-approve plan.tmp
+        run: terraform apply -input=false -auto-approve plan_prod.tmp

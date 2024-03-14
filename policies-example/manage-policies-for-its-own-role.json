@@ -1,0 +1,41 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreatePolicy",
+        "iam:TagPolicy",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:ListPolicyVersions",
+        "iam:CreatePolicyVersion",
+        "iam:DeletePolicyVersion",
+        "iam:DeletePolicy"
+      ],
+      "Resource": "arn:aws:iam::327110749334:policy/IacGhcPipelineResourceManagerPolicy/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::327110749334:role/IacGhcPipelineResourceManagerRole"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["iam:AttachRolePolicy", "iam:DetachRolePolicy"],
+      "Resource": "arn:aws:iam::327110749334:role/IacGhcPipelineResourceManagerRole",
+      "Condition": {
+        "StringLike": {
+          "iam:PolicyArn": [
+            "arn:aws:iam::327110749334:policy/IacGhcPipelineResourceManagerPolicy/*"
+          ]
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["iam:GetRole", "iam:ListAttachedRolePolicies"],
+      "Resource": "arn:aws:iam::327110749334:role/IacGhcPipelineResourceManagerRole"
+    }
+  ]
+}

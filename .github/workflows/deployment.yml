@@ -1,5 +1,5 @@
-name: "dev Deployment"
-run-name: dev Deployment - ${{ github.actor }} 🚀
+name: "Terraform Deployment"
+run-name: ${{ github.triggering_actor }} is running out Terraform Deployment 🚀
 on:
   pull_request:
     branches:
@@ -9,19 +9,17 @@ env:
   OIDC_FED_ACCOUNT: "327110749334" # Modify the OIDC Fed account where the authentication occurs
   TARGET_ACCOUNT: "327110749334" # Modify the target account for deployment
   TERRAFORM_VERSION: 1.7.4
-  # verbosity setting for Terraform logs
-  # TF_LOG: INFO
-
+  # Verbosity setting for Terraform logs
+  # TF_LOG: DEBUG
 jobs:
-  pre-commit-terraform:
-    uses: ./.github/workflows/pre-commit.yml
+  # pre-commit-terraform:
+  #   uses: ./.github/workflows/pre-commit.yml
 
-  dev_terraform_plan:
+  terraform_plan:
     concurrency: workflow
-    name: "dev_terraform_plan"
+    name: "terraform_plan"
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [pre-commit-terraform]
+    # needs: [pre-commit-terraform]
     defaults:
       run:
         shell: bash
@@ -39,7 +37,7 @@ jobs:
         id: Authentication
         run: |
           # Azure authentication
-          echo "${{ secrets.GHC_IAC_OIDC_CERT }}" > private_key.pem
+          echo "${{ secrets.GHC_IAC_OIDC_CERT}}" > private_key.pem
           chmod 600 private_key.pem
           az login --service-principal --allow-no-subscriptions -u ${{ vars.GHC_IaC_APP_ID }} -t ${{ vars.TENANT_ID }}  --password ./private_key.pem
 
@@ -73,13 +71,13 @@ jobs:
         id: plan
         if: github.event_name == 'pull_request'
         run: |
-          terraform plan -var-file=apply-tfvars/dev.tfvars -out=plan_dev.tmp
-          terraform show -no-color plan_dev.tmp >${GITHUB_WORKSPACE}/plan.out
+          terraform plan -var-file=apply-tfvars/dev.tfvars -out=plan.tmp
+          terraform show -no-color plan.tmp >${GITHUB_WORKSPACE}/plan.out
         continue-on-error: true
       - uses: actions/upload-artifact@v4.3.1
         with:
           name: plan-output
-          path: plan_dev.tmp
+          path: plan.tmp
           retention-days: 1
       # This module is needed for the execution of the script below that takes
       # care of the print of the TF Plan in a comment of the PR
@@ -127,61 +125,58 @@ jobs:
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
-
-  dev_terraform_apply:
-    concurrency: workflow
-    name: "dev_terraform_apply"
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [dev_terraform_plan]
-    steps:
-      - name: Checkout the repository to the runner
-        uses: actions/checkout@v4.1.1
-
-      - name: Setup Terraform with specified version on the runner
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-
-      - name: Authentication
-        id: Authentication
-        run: |
-          # Azure authentication
-          echo "${{ secrets.GHC_IAC_OIDC_CERT }}" > private_key.pem
-          chmod 600 private_key.pem
-          az login --service-principal --allow-no-subscriptions -u ${{ vars.GHC_IaC_APP_ID }} -t ${{ vars.TENANT_ID }}  --password ./private_key.pem
-
-          # Get token from Azure
-          WEB_IDENTITY_TOKEN=$(az account get-access-token --resource ${{ vars.GHC_IaC_APP_ID }} --query accessToken -o tsv)
-
-          # Assume OIDC Role in AWS
-          AWS_CREDENTIALS=$(aws sts assume-role-with-web-identity --role-arn 'arn:aws:iam::${{ env.OIDC_FED_ACCOUNT }}:role/IacGhcPipelineRole' --role-session-name "IacGhcPipelineRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --web-identity-token $WEB_IDENTITY_TOKEN --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
-          export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
-          export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
-          export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
-
-          # Assume Deployment Role in AWS
-          AWS_CREDENTIALS=$(aws sts assume-role --role-arn 'arn:aws:iam::${{ env.TARGET_ACCOUNT }}:role/IacGhcPipelineResourceManagerRole' --role-session-name "IacGhcPipelineResourceManagerRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
-          export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
-          export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
-          export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
-          echo "::add-mask::$AWS_SESSION_TOKEN"
-          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
-          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
-
-      - name: Terraform init
-        id: init
-        run: terraform init --backend-config=init-tfvars/dev.tfvars
-      - uses: actions/download-artifact@master
-        with:
-          name: plan-output
       - name: terraform-apply
-        run: terraform apply -input=false -auto-approve plan_dev.tmp
+        # run: echo "terraform apply"
+        run: terraform apply -input=false -auto-approve plan.tmp
 
-  terraform_deployment_qa:
-    needs: [dev_terraform_apply]
-    uses: ./.github/workflows/deployment_qa.yml
-    secrets:
-      GHC_IAC_OIDC_CERT: ${{ secrets.GHC_IAC_OIDC_CERT }}
+  # terraform_apply:
+  #   name: "terraform_apply"
+  #   runs-on: ubuntu-latest
+  #   environment: dev # must exist the environment created in GitHub with the same name
+  #   needs: [terraform_plan]
+  #   steps:
+  #     - name: Checkout the repository to the runner
+  #       uses: actions/checkout@v4.1.1
+
+  #     - name: Setup Terraform with specified version on the runner
+  #       uses: hashicorp/setup-terraform@v3
+  #       with:
+  #         terraform_version: ${{ env.TERRAFORM_VERSION }}
+  #     - name: Authentication
+  #       id: Authentication
+  #       run: |
+  #         # Azure authentication
+  #         echo "${{ secrets.GHC_IAC_OIDC_CERT}}" > private_key.pem
+  #         chmod 600 private_key.pem
+  #         az login --service-principal --allow-no-subscriptions -u ${{ vars.GHC_IaC_APP_ID }} -t ${{ vars.TENANT_ID }}  --password ./private_key.pem
+
+  #         # Get token from Azure
+  #         WEB_IDENTITY_TOKEN=$(az account get-access-token --resource ${{ vars.GHC_IaC_APP_ID }} --query accessToken -o tsv)
+
+  #         # Assume OIDC Role in AWS
+  #         AWS_CREDENTIALS=$(aws sts assume-role-with-web-identity --role-arn 'arn:aws:iam::${{ env.OIDC_FED_ACCOUNT }}:role/IacGhcPipelineRole' --role-session-name "IacGhcPipelineRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --web-identity-token $WEB_IDENTITY_TOKEN --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
+  #         export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
+  #         export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
+  #         export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
+
+  #         # Assume Deployment Role in AWS
+  #         AWS_CREDENTIALS=$(aws sts assume-role --role-arn 'arn:aws:iam::${{ env.TARGET_ACCOUNT }}:role/IacGhcPipelineResourceManagerRole' --role-session-name "IacGhcPipelineResourceManagerRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
+  #         export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
+  #         export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
+  #         export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
+  #         echo "::add-mask::$AWS_SESSION_TOKEN"
+  #         echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+  #         echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+  #         echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+  #         echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+  #     - name: Terraform init
+  #       id: init
+  #       run: |
+  #         aws sts get-caller-identity
+  #         terraform init --backend-config=init-tfvars/dev.tfvars
+  #     - uses: actions/download-artifact@master
+  #       with:
+  #         name: plan-output
+  #     - name: terraform-apply
+  #       # run: echo "terraform apply"
+  #       run: terraform apply -input=false -auto-approve plan.tmp
