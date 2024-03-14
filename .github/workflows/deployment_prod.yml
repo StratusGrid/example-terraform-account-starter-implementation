@@ -73,57 +73,11 @@ jobs:
         run: |
           terraform plan -var-file=apply-tfvars/prod.tfvars -out=plan_prod.tmp
           terraform show -no-color plan_prod.tmp >${GITHUB_WORKSPACE}/plan.out
-        continue-on-error: true
       - uses: actions/upload-artifact@v4.3.1
         with:
           name: plan-output-prod
           path: plan_prod.tmp
           retention-days: 1
-      # This module is needed for the execution of the script below that takes
-      # care of the print of the TF Plan in a comment of the PR
-      - name: Install fs module
-        run: npm install fs
-      - uses: actions/github-script@v7
-        with:
-          script: |
-            const run_url = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID
-            const run_link = '<a href="' + run_url + '">Actions</a>.'
-            const fs = require('fs')
-            let plan = ""
-            let truncated_message = ""
-            if (fs.existsSync('plan.out')) {
-              const plan_file = fs.readFileSync('plan.out', 'utf8');
-              plan = plan_file.length > 65000 ? plan_file.toString().substring(0, 65000) + " ..." : plan_file
-              truncated_message = plan_file.length > 65000 ? "Output is too long and was truncated. You can read full Plan in " + run_link + "<br /><br />" : ""
-            } else {
-              plan = "No plan to show"
-            }
-            const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-
-            <details><summary>Show Plan</summary>
-
-            \`\`\`\n
-            ${plan}
-            \`\`\`
-
-            </details>
-            ${truncated_message}            
-
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ github.workspace }}\`, Workflow: \`${{ github.workflow }}\`*
-            `;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
-
-      - name: Terraform Plan Status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
 
   prod_terraform_apply:
     name: "prod_terraform_apply"
