@@ -176,7 +176,7 @@ jobs:
         run: |
           aws sts get-caller-identity
           terraform init --backend-config=init-tfvars/prod.tfvars
-      - uses: actions/download-artifact@master
+      - uses: actions/download-artifact@v4.1.4
         with:
           name: plan-output-prod
       - name: terraform-apply
