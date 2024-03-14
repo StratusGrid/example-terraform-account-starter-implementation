@@ -78,7 +78,7 @@ jobs:
         continue-on-error: true
       - uses: actions/upload-artifact@v4.3.1
         with:
-          name: plan-output
+          name: plan-output-prod
           path: plan_prod.tmp
           retention-days: 1
       # This module is needed for the execution of the script below that takes
@@ -178,11 +178,6 @@ jobs:
           terraform init --backend-config=init-tfvars/prod.tfvars
       - uses: actions/download-artifact@master
         with:
-          name: plan-output
-      - name: Terraform show
-        id: show
-        if: github.event_name == 'pull_request'
-        run: |
-          terraform show -no-color plan_prod.tmp
+          name: plan-output-prod
       - name: terraform-apply
         run: terraform apply -input=false -auto-approve plan_prod.tmp
