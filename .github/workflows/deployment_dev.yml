@@ -174,7 +174,7 @@ jobs:
       - name: Terraform init
         id: init
         run: terraform init --backend-config=init-tfvars/dev.tfvars
-      - uses: actions/download-artifact@master
+      - uses: actions/download-artifact@v4.1.4
         with:
           name: plan-output
       - name: terraform-apply
