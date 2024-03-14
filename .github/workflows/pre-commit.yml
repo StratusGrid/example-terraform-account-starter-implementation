@@ -5,4 +5,5 @@ on:
 
 jobs:
   build:
+    # TODO: change the branch where it's pointing to, we're pending to merge this to the main
     uses: StratusGrid/workflow-config/.github/workflows/pre-commit.yml@feature/allow-ignore-flags-in-modules

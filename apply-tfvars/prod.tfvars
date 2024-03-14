@@ -1,0 +1,5 @@
+env_name           = "dev"
+region             = "us-east-1"
+source_repo        = "https://github.com/jasonlll88/test-account-starter-permissions"
+name_prefix        = "iac"
+append_name_suffix = "-infra"
