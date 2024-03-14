@@ -10,7 +10,7 @@ env:
   TARGET_ACCOUNT: "327110749334" # Modify the target account for deployment
   TERRAFORM_VERSION: 1.7.4
   # verbosity setting for Terraform logs
-  TF_LOG: INFO
+  # TF_LOG: INFO
 
 jobs:
   pre-commit-terraform:

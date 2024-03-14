@@ -47,7 +47,7 @@ jobs:
           WEB_IDENTITY_TOKEN=$(az account get-access-token --resource ${{ vars.GHC_IaC_APP_ID }} --query accessToken -o tsv)
 
           # Assume OIDC Role in AWS
-          AWS_CREDENTIALS=$(aws sts assume-role-with-web-identity --role-arn 'arn:aws:iam::${{ vars.OIDC_FED_ACCOUNT }}:role/IacGhcPipelineRole' --role-session-name "IacGhcPipelineRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --web-identity-token $WEB_IDENTITY_TOKEN --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
+          AWS_CREDENTIALS=$(aws sts assume-role-with-web-identity --role-arn 'arn:aws:iam::${{ env.OIDC_FED_ACCOUNT }}:role/IacGhcPipelineRole' --role-session-name "IacGhcPipelineRole-$GITHUB_ACTOR-$GITHUB_RUN_NUMBER" --web-identity-token $WEB_IDENTITY_TOKEN --query 'Credentials.{AccessKeyId: AccessKeyId, SecretAccessKey: SecretAccessKey, SessionToken: SessionToken}')
           export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq '.AccessKeyId' -r)
           export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq '.SecretAccessKey' -r)
           export AWS_SESSION_TOKEN=$(echo $AWS_CREDENTIALS | jq '.SessionToken' -r)
