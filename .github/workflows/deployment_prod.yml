@@ -1,7 +1,7 @@
 name: "Production Deployment"
 run-name: Production Deployment - ${{ github.actor }} 🚀
 on:
-  push:
+  pull_request:
     branches:
       - main
 
@@ -17,9 +17,9 @@ jobs:
   pre-commit-terraform:
     uses: ./.github/workflows/pre-commit.yml
 
-  terraform_plan:
+  prod_terraform_plan:
     concurrency: workflow
-    name: "terraform_plan"
+    name: "prod_terraform_plan"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [pre-commit-terraform]
@@ -128,12 +128,12 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
-  terraform_apply:
-    name: "terraform_apply"
+  prod_terraform_apply:
+    name: "prod_terraform_apply"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: prod
-    needs: [terraform_plan]
+    needs: [prod_terraform_plan]
     steps:
       - name: Checkout the repository to the runner
         uses: actions/checkout@v2
