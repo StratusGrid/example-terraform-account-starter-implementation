@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: Checkout the repository to the runner
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.1.1
 
       - name: Setup Terraform with specified version on the runner
         uses: hashicorp/setup-terraform@v3
@@ -136,7 +136,7 @@ jobs:
     needs: [prod_terraform_plan]
     steps:
       - name: Checkout the repository to the runner
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.1.1
 
       - name: Setup Terraform with specified version on the runner
         uses: hashicorp/setup-terraform@v3
