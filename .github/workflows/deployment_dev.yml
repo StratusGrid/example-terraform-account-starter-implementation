@@ -7,7 +7,7 @@ on:
 env:
   AWS_REGION: "us-east-1" # Add the region where you're going to deploy
   OIDC_FED_ACCOUNT: "327110749334" # Modify the OIDC Fed account where the authentication occurs
-  TARGET_ACCOUNT: "327110749334" # Modify the target account for deployment  
+  TARGET_ACCOUNT: "327110749334" # Modify the target account for deployment
   TERRAFORM_VERSION: 1.7.4
   # verbosity setting for Terraform logs
   TF_LOG: INFO
