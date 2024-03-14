@@ -73,7 +73,7 @@ jobs:
         id: plan
         if: github.event_name == 'pull_request'
         run: |
-          terraform plan -var-file=apply-tfvars/netwk.tfvars -out=plan_prod.tmp
+          terraform plan -var-file=apply-tfvars/prod.tfvars -out=plan_prod.tmp
           terraform show -no-color plan_prod.tmp >${GITHUB_WORKSPACE}/plan.out
         continue-on-error: true
       - uses: actions/upload-artifact@v4.3.1
