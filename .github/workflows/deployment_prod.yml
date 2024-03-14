@@ -17,9 +17,9 @@ jobs:
   pre-commit-terraform:
     uses: ./.github/workflows/pre-commit.yml
 
-  terraform_plan:
+  prod_terraform_plan:
     concurrency: workflow
-    name: "terraform_plan"
+    name: "prod_terraform_plan"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [pre-commit-terraform]
@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: Checkout the repository to the runner
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.1.1
 
       - name: Setup Terraform with specified version on the runner
         uses: hashicorp/setup-terraform@v3
@@ -73,12 +73,12 @@ jobs:
         id: plan
         if: github.event_name == 'pull_request'
         run: |
-          terraform plan -var-file=apply-tfvars/netwk.tfvars -out=plan_prod.tmp
+          terraform plan -var-file=apply-tfvars/prod.tfvars -out=plan_prod.tmp
           terraform show -no-color plan_prod.tmp >${GITHUB_WORKSPACE}/plan.out
         continue-on-error: true
       - uses: actions/upload-artifact@v4.3.1
         with:
-          name: plan-output
+          name: plan-output-prod
           path: plan_prod.tmp
           retention-days: 1
       # This module is needed for the execution of the script below that takes
@@ -128,15 +128,15 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
-  terraform_apply:
-    name: "terraform_apply"
+  prod_terraform_apply:
+    name: "prod_terraform_apply"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: prod
-    needs: [terraform_plan]
+    needs: [prod_terraform_plan]
     steps:
       - name: Checkout the repository to the runner
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.1.1
 
       - name: Setup Terraform with specified version on the runner
         uses: hashicorp/setup-terraform@v3
@@ -176,13 +176,8 @@ jobs:
         run: |
           aws sts get-caller-identity
           terraform init --backend-config=init-tfvars/prod.tfvars
-      - uses: actions/download-artifact@master
+      - uses: actions/download-artifact@v4.1.4
         with:
-          name: plan-output
-      - name: Terraform show
-        id: show
-        if: github.event_name == 'pull_request'
-        run: |
-          terraform show -no-color plan_prod.tmp
+          name: plan-output-prod
       - name: terraform-apply
         run: terraform apply -input=false -auto-approve plan_prod.tmp
