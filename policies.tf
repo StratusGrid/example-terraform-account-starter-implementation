@@ -1,3 +1,7 @@
+# data "aws_iam_role" "iac_ghc_pipeline_resource_manager_role" {
+#   name = "IacGhcPipelineResourceManagerRole"
+# }
+
 # resource "aws_iam_policy" "manage_roles" {
 #   name        = "ManageRoles"
 #   path        = "/IacGhcPipelineResourceManagerPolicy/"
