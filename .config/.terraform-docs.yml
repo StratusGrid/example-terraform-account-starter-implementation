@@ -1,3 +1,5 @@
+header-from: ./.config/header.md
+
 version: ""
 
 formatter: markdown table
@@ -5,6 +7,8 @@ formatter: markdown table
 name: test-terraform-account-starter
 
 content: |-
+ {{ .Header }}
+
   # Terraform Account Starter for single region deployment with deployment through CI/CD (GitHub Action)
 
   GitHub: [StratusGrid/terraform-account-starter](https://github.com/StratusGrid/terraform-account-starter)
@@ -193,6 +197,7 @@ content: |-
 
 sections:
   show:
+    - header
     - requirements
     - modules
     - resources

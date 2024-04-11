@@ -1,135 +1,146 @@
 <!-- BEGIN_TF_DOCS -->
-# Terraform Account Starter for single region deployment with deployment through CI/CD (GitHub Action)
+<p align="center">                                                                                                                                            
+                                                                                
+  <img src="https://github.com/StratusGrid/terraform-readme-template/blob/main/header/stratusgrid-logo-smaller.jpg?raw=true" />
+  <p align="center">                                                           
+    <a href="https://stratusgrid.com/book-a-consultation">Contact Us</a> |                  
+    <a href="https://stratusgrid.com/cloud-cost-optimization-dashboard">Stratusphere FinOps</a> |
+    <a href="https://stratusgrid.com">StratusGrid Home</a> |
+    <a href="https://stratusgrid.com/blog">Blog</a>
+  </p>                    
+</p>
 
-GitHub: [StratusGrid/terraform-account-starter](https://github.com/StratusGrid/terraform-account-starter)
+ # Terraform Account Starter for single region deployment with deployment through CI/CD (GitHub Action)
 
-This repo contains the files for the creation of the S3 Bucket and dynamo DB table to work with a state file of Terraform in a remote location and adding the implementation of the CI/CD pipeline for appying Terraform in the same account.
+ GitHub: [StratusGrid/terraform-account-starter](https://github.com/StratusGrid/terraform-account-starter)
 
-## StratusGrid Standards we assume
+ This repo contains the files for the creation of the S3 Bucket and dynamo DB table to work with a state file of Terraform in a remote location and adding the implementation of the CI/CD pipeline for appying Terraform in the same account.
 
-- All resource names shall use `_` and not `-`s
-- StratusGrid mostly follows the file names outlined [here](https://www.terraform-best-practices.com/code-structure), we use a `providers.tf` file for provider specific information.
-- StratusGrid mainly uses the AWS provider, and this provider supports provider level tagging. We use that whenever possible, some resources don't explicitly support it so tags need to be checked.
-- The old naming standard for common files such as inputs, outputs, providers, etc was to prefix them with a `-`, this is no longer true as it's not POSIX compliant. Our pre-commit hooks will fail with this old standard.
-- StratusGrid generally follows the TerraForm standards outlined [here](https://www.terraform-best-practices.com/naming)
+ ## StratusGrid Standards we assume
 
-## Repo Knowledge
+ - All resource names shall use `_` and not `-`s
+ - StratusGrid mostly follows the file names outlined [here](https://www.terraform-best-practices.com/code-structure), we use a `providers.tf` file for provider specific information.
+ - StratusGrid mainly uses the AWS provider, and this provider supports provider level tagging. We use that whenever possible, some resources don't explicitly support it so tags need to be checked.
+ - The old naming standard for common files such as inputs, outputs, providers, etc was to prefix them with a `-`, this is no longer true as it's not POSIX compliant. Our pre-commit hooks will fail with this old standard.
+ - StratusGrid generally follows the TerraForm standards outlined [here](https://www.terraform-best-practices.com/naming)
 
-This repo has several base requirements
-- This repo is based upon the AWS `~> 5.40` provider
-- The following packages are installed via brew: `tflint`, `terrascan`, `terraform-docs`, `gitleaks`, `tfsec`, `pre-commit', 'sops`, `go`
-- If you encounter an error like `declare: -g: invalid option` reference [this](https://github.com/antonbabenko/pre-commit-terraform/issues/337) and install Bash 5
-- If you need more tflint plugins, please edit the `.tflint.hcl` file with the instructions from [here](https://github.com/terraform-linters/tflint)
-- It's highly recommend that you follow the Git Pre-Commit Instructions below, these will run in GitHub though they should be ran locally to reduce issues
-- By default Terraform docs will always run so our auto generated docs are always up to date
+ ## Repo Knowledge
 
-### TFSec (Deprecated)
+ This repo has several base requirements
+ - This repo is based upon the AWS `~> 5.40` provider
+ - The following packages are installed via brew: `tflint`, `terrascan`, `terraform-docs`, `gitleaks`, `tfsec`, `pre-commit', 'sops`, `go`
+ - If you encounter an error like `declare: -g: invalid option` reference [this](https://github.com/antonbabenko/pre-commit-terraform/issues/337) and install Bash 5
+ - If you need more tflint plugins, please edit the `.tflint.hcl` file with the instructions from [here](https://github.com/terraform-linters/tflint)
+ - It's highly recommend that you follow the Git Pre-Commit Instructions below, these will run in GitHub though they should be ran locally to reduce issues
+ - By default Terraform docs will always run so our auto generated docs are always up to date
 
-See the pre-commit tfsec documentation [here](https://github.com/antonbabenko/pre-commit-terraform#terraform_tfsec), this includes on how to bypass warnings
+ ### TFSec (Deprecated)
 
-### Trivy
+ See the pre-commit tfsec documentation [here](https://github.com/antonbabenko/pre-commit-terraform#terraform_tfsec), this includes on how to bypass warnings
 
-Trivy has scanners that look for security issues, and targets where it can find those issues. TFSec was migrated to Trivy
+ ### Trivy
 
-### Terraform validate
+ Trivy has scanners that look for security issues, and targets where it can find those issues. TFSec was migrated to Trivy
 
-Terraform Validate can't be used in the Git Pre-Commit hooks as several resources are generated at run time
+ ### Terraform validate
 
-## Documentation
+ Terraform Validate can't be used in the Git Pre-Commit hooks as several resources are generated at run time
 
-This repo is self documenting via Terraform Docs, please see the note at the bottom.
+ ## Documentation
 
-The way that this repo is structured is supposed to be an infrastructure starter, as well as a base psuedo code repo.
-Each file is generally self contained except where it can't be. All variables are in `variables.tf`, all data is in `data.tf`, and etc.
+ This repo is self documenting via Terraform Docs, please see the note at the bottom.
 
-### `data.tf`
-This data file contains all references for data providers, these are fairly generic.
+ The way that this repo is structured is supposed to be an infrastructure starter, as well as a base psuedo code repo.
+ Each file is generally self contained except where it can't be. All variables are in `variables.tf`, all data is in `data.tf`, and etc.
 
-### `LICENSE`
-This is the standard Apache 2.0 License as defined [here](https://stratusgrid.atlassian.net/wiki/spaces/TK/pages/2121728017/StratusGrid+Terraform+Module+Requirements).
+ ### `data.tf`
+ This data file contains all references for data providers, these are fairly generic.
 
-### `locals.tf`
-All local values that aren't file specific.
+ ### `LICENSE`
+ This is the standard Apache 2.0 License as defined [here](https://stratusgrid.atlassian.net/wiki/spaces/TK/pages/2121728017/StratusGrid+Terraform+Module+Requirements).
 
-### `outputs.tf`
-The StratusGrid standard for Terraform Outputs.
+ ### `locals.tf`
+ All local values that aren't file specific.
 
-### `provider.tf`
-This file contains the necessary provider(s) and there configurations.
+ ### `outputs.tf`
+ The StratusGrid standard for Terraform Outputs.
 
-### `README.md`
-It's` this file! I'm always updated via TF Docs!
+ ### `provider.tf`
+ This file contains the necessary provider(s) and there configurations.
 
-### `s3-bucket-logging.tf`
-This contains the SG module for setting up a logging bucket, it's replicated once for each US based region. This file needs to have parts uncommented if using centralized logging.
+ ### `README.md`
+ It's` this file! I'm always updated via TF Docs!
 
-### `s3-bucket-terraform-state.tf`
-This contains the SG module for setting up our TF centralized remote state S3 bucket and KMS Key.
+ ### `s3-bucket-logging.tf`
+ This contains the SG module for setting up a logging bucket, it's replicated once for each US based region. This file needs to have parts uncommented if using centralized logging.
 
-### `state.tfnot`
-The StratusGrid standard for Terraform remote state management.
-Rename this file to `state.tf` once you're ready to migrate to the remote state.
+ ### `s3-bucket-terraform-state.tf`
+ This contains the SG module for setting up our TF centralized remote state S3 bucket and KMS Key.
 
-### `tags.tf`
-The StratusGrid standard for provider/module level tagging.
+ ### `state.tfnot`
+ The StratusGrid standard for Terraform remote state management.
+ Rename this file to `state.tf` once you're ready to migrate to the remote state.
 
-### `variables.tf`
-All variables related to this repo for all facets.
-One day this should be broken up into each file, maybe maybe not.
+ ### `tags.tf`
+ The StratusGrid standard for provider/module level tagging.
 
-### `versions.tf`
-This file contains the required Terraform versions, as well as the required providers and their versions.
+ ### `variables.tf`
+ All variables related to this repo for all facets.
+ One day this should be broken up into each file, maybe maybe not.
 
-
-### Documentation
-
-The detailed documentation for this example repo can be found in https://stratusgrid.atlassian.net/wiki/spaces/PRSRV/pages/edit-v2/2711846924?draftShareId=b02d10d2-9f4a-4ee8-aece-0a6cb136db29&inEditorTemplatesPanel=auto_closed
+ ### `versions.tf`
+ This file contains the required Terraform versions, as well as the required providers and their versions.
 
 
-## Documentation of Misc Config Files
+ ### Documentation
 
-This section is supposed to outline what the misc configuration files do and what is there purpose
+ The detailed documentation for this example repo can be found in https://stratusgrid.atlassian.net/wiki/spaces/PRSRV/pages/edit-v2/2711846924?draftShareId=b02d10d2-9f4a-4ee8-aece-0a6cb136db29&inEditorTemplatesPanel=auto_closed
 
-### `.config/.terraform-docs.yml`
-This file auto generates your `README.md` file.
 
-### `.config/terrascan.yaml`
-This file has all of the configuration options required for Terrascan, this is where you would skip rules to.
+ ## Documentation of Misc Config Files
 
-### `.github/sync-repo-settings.yaml`
-This file is our standard for how GitHub branch protection rules should be setup.
+ This section is supposed to outline what the misc configuration files do and what is there purpose
 
-### `.github/workflows/pre-commit.yml`
-This file contains the instructions for Github workflows, in specific this file run pre-commit and will allow the PR to pass or fail. This is a safety check and extras for if pre-commit isn't run locally.
+ ### `.config/.terraform-docs.yml`
+ This file auto generates your `README.md` file.
 
-### `.gitignore`
-This is your gitignore, and contains a slew of default standards.
+ ### `.config/terrascan.yaml`
+ This file has all of the configuration options required for Terrascan, this is where you would skip rules to.
 
-### `.terraform.lock.hcl`
-This file contains the hashes of the Terraform providers and modules we're using.
+ ### `.github/sync-repo-settings.yaml`
+ This file is our standard for how GitHub branch protection rules should be setup.
 
----
+ ### `.github/workflows/pre-commit.yml`
+ This file contains the instructions for Github workflows, in specific this file run pre-commit and will allow the PR to pass or fail. This is a safety check and extras for if pre-commit isn't run locally.
 
-## Requirements
+ ### `.gitignore`
+ This is your gitignore, and contains a slew of default standards.
+
+ ### `.terraform.lock.hcl`
+ This file contains the hashes of the Terraform providers and modules we're using.
+
+ ---
+
+ ## Requirements
 
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= v1.7.4 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 5.40.0 |
 
-## Modules
+ ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
 | <a name="module_s3_bucket_logging"></a> [s3\_bucket\_logging](#module\_s3\_bucket\_logging) | StratusGrid/s3-bucket-logging/aws | 2.1.4 |
 | <a name="module_terraform_state"></a> [terraform\_state](#module\_terraform\_state) | StratusGrid/terraform-state-s3-bucket-centralized-with-roles/aws | 5.1.1 |
 
-## Resources
+ ## Resources
 
 | Name | Type |
 |------|------|
 
-## Inputs
+ ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
@@ -141,7 +152,7 @@ This file contains the hashes of the Terraform providers and modules we're using
 | <a name="input_region"></a> [region](#input\_region) | AWS Region to target | `string` | n/a | yes |
 | <a name="input_source_repo"></a> [source\_repo](#input\_source\_repo) | URL of the repo which holds this code | `string` | n/a | yes |
 
-## Outputs
+ ## Outputs
 
 | Name | Description |
 |------|-------------|
@@ -156,66 +167,66 @@ This file contains the hashes of the Terraform providers and modules we're using
 | <a name="output_terraform_state_kms_key_arn"></a> [terraform\_state\_kms\_key\_arn](#output\_terraform\_state\_kms\_key\_arn) | kms key to use for encrytption when storing/reading terraform state configuration |
 
 
----
-## Assumptions we make
+ ---
+ ## Assumptions we make
 
-* We assume a basic knowledge of terraform
-* We assume StratusGrid written and unwritten (Listen I know, if you find an unwritten standard please standardize and it document it) standards
-* We assume you know how to switch TF states to new envs
-* We assume that if you find something wrong or have an improvement you will submit a PR and run terraform-docs
-* **Of all most importance, we assume that you read this or at least skimmed this README file**
+ * We assume a basic knowledge of terraform
+ * We assume StratusGrid written and unwritten (Listen I know, if you find an unwritten standard please standardize and it document it) standards
+ * We assume you know how to switch TF states to new envs
+ * We assume that if you find something wrong or have an improvement you will submit a PR and run terraform-docs
+ * **Of all most importance, we assume that you read this or at least skimmed this README file**
 
-## Just a note
+ ## Just a note
 
-### First Run
+ ### First Run
 
-When doing a first run update the init-tfvars tfvars file for the relevant values produced via the account starter.
-After the initial and the terraform state file is created. Rename `state.tfnot` to `state.tf` and run `rm -rf .terraform`. Then rerun the terraform init to migrate the state file to S3.
+ When doing a first run update the init-tfvars tfvars file for the relevant values produced via the account starter.
+ After the initial and the terraform state file is created. Rename `state.tfnot` to `state.tf` and run `rm -rf .terraform`. Then rerun the terraform init to migrate the state file to S3.
 
-This is purely an example repo and it's subject to change for each and every client, please use your best judgement. While adhering to StratusGrids' Standards.
+ This is purely an example repo and it's subject to change for each and every client, please use your best judgement. While adhering to StratusGrids' Standards.
 
-## Apply this template via Terraform
+ ## Apply this template via Terraform
 
-### Before this is applied, you need to configure the git hook on your local machine
-```bash
-#Verify you have bash5
-brew install bash
+ ### Before this is applied, you need to configure the git hook on your local machine
+ ```bash
+ #Verify you have bash5
+ brew install bash
 
-# Test your pre-commit hooks - This will force them to run on all files
-pre-commit run --all-files
+ # Test your pre-commit hooks - This will force them to run on all files
+ pre-commit run --all-files
 
-# Add your pre-commit hooks forever
-pre-commit install
-```
+ # Add your pre-commit hooks forever
+ pre-commit install
+ ```
 
-### Dev
-```bash
-terraform init -backend-config=./init-tfvars/dev.tfvars
-terraform apply -var-file ./apply-tfvars/dev.tfvars
-```
+ ### Dev
+ ```bash
+ terraform init -backend-config=./init-tfvars/dev.tfvars
+ terraform apply -var-file ./apply-tfvars/dev.tfvars
+ ```
 
-### Stg
-```bash
-terraform init -backend-config=./init-tfvars/stg.tfvars
-terraform apply -var-file ./apply-tfvars/stg.tfvars
-```
+ ### Stg
+ ```bash
+ terraform init -backend-config=./init-tfvars/stg.tfvars
+ terraform apply -var-file ./apply-tfvars/stg.tfvars
+ ```
 
-### Prd
-```bash
-terraform init -backend-config=./init-tfvars/prd.tfvars
-terraform apply -var-file ./apply-tfvars/prd.tfvars
-```
-Note: Before reading, uncomment the code for the environment that you
-wish to apply the code to. This goes for both the init-tfvars and apply-tfvars
-folders.
+ ### Prd
+ ```bash
+ terraform init -backend-config=./init-tfvars/prd.tfvars
+ terraform apply -var-file ./apply-tfvars/prd.tfvars
+ ```
+ Note: Before reading, uncomment the code for the environment that you
+ wish to apply the code to. This goes for both the init-tfvars and apply-tfvars
+ folders.
 
-For situation with multiple environments we expected to make the deployment through the CICD Tool (GitHub actions) so the code should be in sync in all environment, for different configuration amoing them we should use variable files.
+ For situation with multiple environments we expected to make the deployment through the CICD Tool (GitHub actions) so the code should be in sync in all environment, for different configuration amoing them we should use variable files.
 
-## Contributors
-- Chris Hurst [StratusChris](https://github.com/StratusChris)
-- Ivan Casco [ivancasco-sg](https://github.com/ivancasco-sg)
-- Tyler Martin [SGTyler](https://github.com/SGTyler)
-- Wesley Kirkland [wesleykirklandsg](https://github.com/wesleykirklandsg)
+ ## Contributors
+ - Chris Hurst [StratusChris](https://github.com/StratusChris)
+ - Ivan Casco [ivancasco-sg](https://github.com/ivancasco-sg)
+ - Tyler Martin [SGTyler](https://github.com/SGTyler)
+ - Wesley Kirkland [wesleykirklandsg](https://github.com/wesleykirklandsg)
 
-Note, manual changes to the README will be overwritten when the documentation is updated. To update the documentation, run `terraform-docs -c .config/.terraform-docs.yml .`
+ Note, manual changes to the README will be overwritten when the documentation is updated. To update the documentation, run `terraform-docs -c .config/.terraform-docs.yml .`
 <!-- END_TF_DOCS -->
